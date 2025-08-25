@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tic Tac Toe — Two Players with Scoreboard</title>
+<style>
+  :root{
+    --bg:#0b1220;
+    --panel:#111a2c;
+    --card:#0f172a;
+    --accent:#06b6d4;
+    --text:#e5e7eb;
+    --muted:#9aa4b2;
+    --win:#16a34a;
+    --lose:#ef4444;
+    --draw:#fbbf24;
+    --ring:#0ea5e9;
+    --shadow:0 10px 25px rgba(0,0,0,.35);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; padding:24px;
+    background:radial-gradient(1400px 800px at 20% -10%, #1f2937 0%, var(--bg) 58%), var(--bg);
+    color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .app{
+    width:min(1100px, 95vw);
+    display:grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap:22px;
+  }
+  @media (max-width: 900px){
+    .app{grid-template-columns: 1fr; max-width: 640px}
+  }
+
+  .panel{
+    background:linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
+    border:1px solid #1f2a44;
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+
+  header.panel{
+    padding:18px 20px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  h1{
+    margin:0; font-size: clamp(20px, 2.6vw, 28px); letter-spacing:.3px;
+  }
+  .sub{color:var(--muted); font-size:13px}
+
+  .controls{
+    display:flex; gap:10px; flex-wrap:wrap;
+  }
+  button, .btn{
+    cursor:pointer; user-select:none;
+    background:transparent; color:var(--text);
+    border:1px solid #1f2a44; border-radius:12px;
+    padding:10px 14px; font-weight:600; letter-spacing:.2px;
+    transition: transform .04s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  button:focus-visible{outline:none; box-shadow:0 0 0 3px rgba(14,165,233,.45)}
+  button:hover{background:#0e1729}
+  .btn-primary{background: linear-gradient(180deg, #14b8a6, #0891b2); border-color: transparent}
+  .btn-primary:hover{filter:brightness(1.05)}
+  .btn-danger{border-color:#2a1f29; background: linear-gradient(180deg, #ef4444, #b91c1c)}
+  .btn-ghost{border-color:#23324d}
+
+  .board-wrap.panel{ padding:18px }
+  .status{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;
+  }
+  .pill{
+    border:1px solid #1f2a44; background:#0f172a; padding:8px 12px; border-radius:999px; font-size:14px; color:#d1d5db;
+  }
+  .pill .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; background:var(--accent)}
+  .grid{
+    --size:min(72vw, 520px);
+    width:var(--size); max-width: 520px; aspect-ratio:1/1;
+    margin:10px auto 6px; display:grid; gap:10px; grid-template-columns:repeat(3,1fr);
+  }
+  .cell{
+    background: radial-gradient(240px 160px at 30% 0%, #111d35 0%, #0d1324 70%);
+    border:1px solid #1f2a44; border-radius:18px;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size: clamp(34px, 8.5vw, 64px);
+    color:#e2e8f0; text-shadow: 0 8px 18px rgba(0,0,0,.35);
+    cursor:pointer; position:relative; transition: transform .06s ease, background .2s ease, border-color .2s ease;
+  }
+  .cell:focus-visible{outline:none; box-shadow:0 0 0 3px rgba(14,165,233,.45)}
+  .cell:hover{background:#0f1a2f; transform: translateY(-1px)}
+  .cell.disabled{cursor:not-allowed; opacity:.85}
+  .cell.win{border-color: #15803d; box-shadow: inset 0 0 0 1px #166534}
+
+  /* Right column cards */
+  .card{padding:16px 16px 14px}
+  .stack{display:grid; gap:14px}
+  .names{
+    display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; align-items:end;
+  }
+  label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px}
+  input[type="text"]{
+    width:100%; padding:10px 12px; border-radius:12px; background:#0b1220; color:#e5e7eb;
+    border:1px solid #1f2a44;
+  }
+  input[type="text"]::placeholder{color:#6b7280}
+  .score{
+    width:100%; border-collapse: collapse; overflow:hidden; border-radius:12px; border:1px solid #1f2a44;
+  }
+  .score th, .score td{ padding:10px 12px; text-align:center; }
+  .score thead{ background:#0c1527 }
+  .score tbody tr:nth-child(odd){ background:#0b1426 }
+  .score tbody tr:nth-child(even){ background:#0a1322 }
+  .align-left{text-align:left}
+  .badge{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700}
+  .b-win{background:rgba(22,163,74,.15); color:#86efac}
+  .b-draw{background:rgba(251,191,36,.12); color:#fde68a}
+  .b-lose{background:rgba(239,68,68,.12); color:#fecaca}
+
+  .footer-note{color:var(--muted); font-size:12px; margin-top:6px}
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- Top bar -->
+    <header class="panel">
+      <div>
+        <h1>Tic Tac Toe</h1>
+        <div class="sub">Two players • Scoreboard • Alternating starts</div>
+      </div>
+      <div class="controls">
+        <button id="newGameBtn" class="btn btn-primary" aria-label="Start a new game">New Game</button>
+        <button id="resetCountersBtn" class="btn btn-danger" aria-label="Reset win/draw/loss counters">Reset Counters</button>
+      </div>
+    </header>
+
+    <!-- Board + status -->
+    <section class="board-wrap panel" aria-live="polite">
+      <div class="status">
+        <div id="turnPill" class="pill"><span class="dot"></span><span id="turnText">Waiting for names…</span></div>
+        <div class="pill" id="gameMessage" role="status" aria-live="polite"></div>
+      </div>
+      <div class="grid" id="grid" role="grid" aria-label="Tic Tac Toe board">
+        <!-- 9 cells -->
+        <button class="cell" role="gridcell" data-index="0" aria-label="Cell 1,1"></button>
+        <button class="cell" role="gridcell" data-index="1" aria-label="Cell 1,2"></button>
+        <button class="cell" role="gridcell" data-index="2" aria-label="Cell 1,3"></button>
+        <button class="cell" role="gridcell" data-index="3" aria-label="Cell 2,1"></button>
+        <button class="cell" role="gridcell" data-index="4" aria-label="Cell 2,2"></button>
+        <button class="cell" role="gridcell" data-index="5" aria-label="Cell 2,3"></button>
+        <button class="cell" role="gridcell" data-index="6" aria-label="Cell 3,1"></button>
+        <button class="cell" role="gridcell" data-index="7" aria-label="Cell 3,2"></button>
+        <button class="cell" role="gridcell" data-index="8" aria-label="Cell 3,3"></button>
+      </div>
+      <div class="footer-note">Tip: the starting player alternates each new game.</div>
+    </section>
+
+    <!-- Names + Scoreboard -->
+    <aside class="panel card">
+      <div class="stack">
+        <div class="names">
+          <div>
+            <label for="p1">Player X name</label>
+            <input id="p1" type="text" placeholder="Player X (e.g., Alice)" />
+          </div>
+          <div>
+            <label for="p2">Player O name</label>
+            <input id="p2" type="text" placeholder="Player O (e.g., Bob)" />
+          </div>
+          <button id="applyNamesBtn" class="btn btn-ghost" style="height:42px" aria-label="Apply player names">Apply</button>
+        </div>
+
+        <div>
+          <table class="score" aria-label="Scoreboard">
+            <thead>
+              <tr>
+                <th class="align-left">Player</th>
+                <th>Symbol</th>
+                <th>Wins <span class="badge b-win">W</span></th>
+                <th>Draws <span class="badge b-draw">D</span></th>
+                <th>Losses <span class="badge b-lose">L</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="align-left" id="nameX">Player X</td>
+                <td>X</td>
+                <td id="winsX">0</td>
+                <td id="drawsX">0</td>
+                <td id="lossesX">0</td>
+              </tr>
+              <tr>
+                <td class="align-left" id="nameO">Player O</td>
+                <td>O</td>
+                <td id="winsO">0</td>
+                <td id="drawsO">0</td>
+                <td id="lossesO">0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+(function(){
+  // ----- State -----
+  const cells = Array.from(document.querySelectorAll('.cell'));
+  const gridEl = document.getElementById('grid');
+  const turnText = document.getElementById('turnText');
+  const gameMessage = document.getElementById('gameMessage');
+
+  const nameXEl = document.getElementById('nameX');
+  const nameOEl = document.getElementById('nameO');
+  const winsXEl = document.getElementById('winsX');
+  const winsOEl = document.getElementById('winsO');
+  const drawsXEl = document.getElementById('drawsX');
+  const drawsOEl = document.getElementById('drawsO');
+  const lossesXEl = document.getElementById('lossesX');
+  const lossesOEl = document.getElementById('lossesO');
+
+  const p1Input = document.getElementById('p1');
+  const p2Input = document.getElementById('p2');
+  const applyNamesBtn = document.getElementById('applyNamesBtn');
+  const newGameBtn = document.getElementById('newGameBtn');
+  const resetCountersBtn = document.getElementById('resetCountersBtn');
+
+  const WIN_LINES = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  let board = Array(9).fill(null);
+  let gameActive = true;
+
+  const players = {
+    X: { name: "Player X", wins: 0, draws: 0, losses: 0 },
+    O: { name: "Player O", wins: 0, draws: 0, losses: 0 }
+  };
+
+  let startingSymbol = 'X'; // alternates after each finished game
+  let currentSymbol = startingSymbol;
+
+  // ----- Helpers -----
+  function symToName(sym){ return players[sym].name || (sym === 'X' ? "Player X" : "Player O"); }
+
+  function updateScoreboard(){
+    nameXEl.textContent = players.X.name;
+    nameOEl.textContent = players.O.name;
+    winsXEl.textContent = players.X.wins;
+    winsOEl.textContent = players.O.wins;
+    drawsXEl.textContent = players.X.draws;
+    drawsOEl.textContent = players.O.draws;
+    lossesXEl.textContent = players.X.losses;
+    lossesOEl.textContent = players.O.losses;
+  }
+
+  function updateTurnText(){
+    if(!gameActive){
+      return;
+    }
+    turnText.textContent = `${symToName(currentSymbol)} (${currentSymbol}) to move`;
+  }
+
+  function setMessage(msg){ gameMessage.textContent = msg || ""; }
+
+  function highlightWin(c0,c1,c2){
+    [c0,c1,c2].forEach(i => cells[i].classList.add('win'));
+  }
+
+  function checkWinner(){
+    for(const [a,b,c] of WIN_LINES){
+      if(board[a] && board[a] === board[b] && board[b] === board[c]){
+        return {winner: board[a], line:[a,b,c]};
+      }
+    }
+    return null;
+  }
+
+  function isDraw(){ return board.every(v => v !== null); }
+
+  function endGame(result){
+    gameActive = false;
+    cells.forEach(cell => cell.classList.add('disabled'));
+
+    if(result.type === 'win'){
+      const winner = result.winner;
+      const loser  = winner === 'X' ? 'O' : 'X';
+      players[winner].wins += 1;
+      players[loser].losses += 1;
+      highlightWin(...result.line);
+      setMessage(`${symToName(winner)} (${winner}) wins!`);
+    } else if(result.type === 'draw'){
+      players.X.draws += 1;
+      players.O.draws += 1;
+      setMessage(`It's a draw.`);
+    }
+    updateScoreboard();
+  }
+
+  function newGame(){
+    board.fill(null);
+    cells.forEach(cell => {
+      cell.textContent = "";
+      cell.classList.remove('disabled','win');
+      cell.setAttribute('aria-label', cell.getAttribute('aria-label').replace(/(X|O) placed$/, '').trim());
+    });
+    setMessage("");
+    gameActive = true;
+    // Alternate starting player for fairness
+    startingSymbol = startingSymbol === 'X' ? 'O' : 'X';
+    currentSymbol = startingSymbol;
+    updateTurnText();
+  }
+
+  function resetCounters(){
+    players.X.wins = players.X.draws = players.X.losses = 0;
+    players.O.wins = players.O.draws = players.O.losses = 0;
+    updateScoreboard();
+    setMessage("Counters reset.");
+  }
+
+  function applyNames(){
+    const n1 = (p1Input.value || "").trim();
+    const n2 = (p2Input.value || "").trim();
+    if(n1) players.X.name = n1;
+    if(n2) players.O.name = n2;
+    updateScoreboard();
+    updateTurnText();
+    setMessage("Names updated.");
+  }
+
+  // ----- Events -----
+  cells.forEach(cell => {
+    cell.addEventListener('click', (e) => {
+      if(!gameActive) return;
+      const idx = +e.currentTarget.dataset.index;
+      if(board[idx] !== null) return;
+      board[idx] = currentSymbol;
+      e.currentTarget.textContent = currentSymbol;
+      e.currentTarget.setAttribute('aria-label', `${e.currentTarget.getAttribute('aria-label')} ${currentSymbol} placed`);
+
+      const winInfo = checkWinner();
+      if(winInfo){
+        endGame({type:'win', winner: winInfo.winner, line: winInfo.line});
+        return;
+      }
+      if(isDraw()){
+        endGame({type:'draw'});
+        return;
+      }
+      currentSymbol = currentSymbol === 'X' ? 'O' : 'X';
+      updateTurnText();
+    });
+  });
+
+  newGameBtn.addEventListener('click', newGame);
+  resetCountersBtn.addEventListener('click', resetCounters);
+  applyNamesBtn.addEventListener('click', applyNames);
+
+  // Initialize UI
+  updateScoreboard();
+  updateTurnText();
+})();
+</script>
+</body>
+</html>
